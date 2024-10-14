@@ -6,6 +6,8 @@ name: .NET
 on:
   push:
     branches: [ "master" ]
+    tags:
+      - v1.*
 
 jobs:
   release:
