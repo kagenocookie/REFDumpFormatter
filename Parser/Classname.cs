@@ -42,7 +42,7 @@ public class Classname
     public string ToStringFullName(bool includeNamespace, bool includeParents)
     {
         if (includeNamespace && !string.IsNullOrEmpty(Namespace)) {
-            if (includeParents && globalPrefixNamespaces.Contains(Namespace)) {
+            if (Context.options.Type == OutputType.GenerateCsharp && includeParents && globalPrefixNamespaces.Contains(Namespace)) {
                 sb.Append("global::");
             }
             sb.Append(Namespace).Append('.');
