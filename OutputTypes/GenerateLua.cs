@@ -171,7 +171,7 @@ public partial class GenerateLua
                         .Append($" (Property: {gtstr} {ststr})");
                 } else {
                     var access = field.IsPrivate ? "private" : "public";
-                    sb.Append("---@field ").Append(friendlyTypeName).Append(' ').Append(access);
+                    sb.Append("---@field ").Append(fieldName).Append(' ').Append(friendlyTypeName).Append(' ').Append(access);
                 }
                 if (field.IsStatic) {
                     sb.Append(" static");
