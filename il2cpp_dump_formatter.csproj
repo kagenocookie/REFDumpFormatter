@@ -6,4 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content
+      Include="Includes\**\*.*"
+      CopyToOutputDirectory="Always"
+      TargetPath="Includes\%(RecursiveDir)\%(Filename)%(Extension)"
+    />
+  </ItemGroup>
+
 </Project>

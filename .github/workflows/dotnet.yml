@@ -28,7 +28,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         cd bin/Release/net8.0
-        7z a il2cpp_dump_formatter.zip il2cpp_dump_formatter.dll il2cpp_dump_formatter.exe il2cpp_dump_formatter.runtimeconfig.json
+        7z a il2cpp_dump_formatter.zip il2cpp_dump_formatter.dll il2cpp_dump_formatter.exe il2cpp_dump_formatter.runtimeconfig.json Includes
     - name: Create release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')

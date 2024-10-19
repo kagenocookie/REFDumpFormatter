@@ -7,8 +7,6 @@ public partial class GenerateLua
     private string basePath = null!;
     private HashSet<string>? overloads;
 
-    private static readonly string[] implicitParents = new[] { "System.Object", "System.ValueType" };
-
     private static readonly Dictionary<string, string> baseTypes = new() {
         { "System.Boolean", "boolean" },
         { "System.Single", "number" },
@@ -22,6 +20,8 @@ public partial class GenerateLua
         { "System.SByte", "integer" },
         { "System.Byte", "integer" },
         { "System.String", "string" },
+        { "System.Object", "REManagedObject" },
+        { "System.ValueType", "ValueType" },
     };
 
     public void GenerateOutput(OutputOptions options, IEnumerable<(string name, ObjectDef obj)> entries)
@@ -124,21 +124,26 @@ public partial class GenerateLua
         sb.Append("---@class ").Append(fullname);
 
         // handle parents, interfaces
-        var hasParent = !string.IsNullOrEmpty(item.parent) && !implicitParents.Contains(item.parent);
-        if (hasParent) {
-            var parentCls = Classname.Parse(item.parent!, ctx, cls.Name);
-            sb.Append(" : ").Append(parentCls?.ToStringFullName(true, true) ?? item.parent);
+        IEnumerable<string> parentsList = Array.Empty<string>();
+        if (!string.IsNullOrEmpty(item.parent)) {
+            if (baseTypes.TryGetValue(item.parent, out var convertedBasetype)) {
+                parentsList = parentsList.Append(convertedBasetype);
+            } else {
+                var parentCls = Classname.Parse(item.parent!, ctx, cls.Name);
+                parentsList = parentsList.Append(parentCls?.ToStringFullName(true, true) ?? item.parent);
+            }
         }
         var interfaces = item.methods?.Where(m => m.Key.AsSpan()[1..].Contains('.')).Select(m => m.Key.Substring(0, m.Key.LastIndexOf('.'))).Distinct();
         if (interfaces?.Any() == true) {
-            sb.Append(hasParent ? ", " : " : ");
-            sb.AppendJoin(", ", interfaces);
-            hasParent = true;
+            parentsList = parentsList.Concat(interfaces);
         }
         if (baseTypes.TryGetValue(fullname, out var basetypeStr)) {
-            sb.Append(hasParent ? ", " : " : ");
-            sb.Append(basetypeStr);
+            parentsList = parentsList.Append(basetypeStr);
         }
+        if (parentsList.Any()) {
+            sb.Append(" : ").AppendJoin(", ", parentsList);
+        }
+
         sb.AppendLine();
 
         if (item.fields != null) {
@@ -245,6 +250,8 @@ public partial class GenerateLua
                 }
             }
         }
+
+        ctx.CopyIncludes();
     }
 
     private static string GetFriendlyTypeName(string? typeString, GeneratorContext ctx, Classname containingClass)

@@ -139,4 +139,24 @@ public partial class GeneratorContext
             return (outputPath, false);
         }
     }
+
+    public void CopyIncludes()
+    {
+        var sourceDir = $"Includes/{(options.Type == OutputType.GenerateLua ? "lua" : "csharp")}";
+        if (Directory.Exists(sourceDir)) {
+            CopyFilesRecursively(sourceDir, OutputDirectory);
+        }
+    }
+
+    // https://stackoverflow.com/a/3822913/4721768
+    private static void CopyFilesRecursively(string sourcePath, string targetPath)
+    {
+        foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories)) {
+            Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
+        }
+
+        foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories)) {
+            File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
+        }
+    }
 }
