@@ -1,6 +1,6 @@
 -- https://cursey.github.io/reframework-book/api/types/REManagedObject.html
 
---- @class REManagedObject
+--- @class REManagedObject : System.Object
 REManagedObject = {}
 
 --- Return value is dependent on the method's return type. Wrapper over sdk.call_object_func.

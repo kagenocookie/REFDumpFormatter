@@ -1,7 +1,7 @@
 -- https://cursey.github.io/reframework-book/api/types/SystemArray.html
 
---- @class SystemArray
-local SystemArray = {}
+--- @class SystemArray : REManagedObject
+SystemArray = {}
 
 --- Returns the array's elements as a lua table.
 --- Keep in mind these objects will all be full REManagedObject types, not the ValueTypes they represent, if any, like System.Int32

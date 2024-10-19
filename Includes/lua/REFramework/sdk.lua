@@ -33,7 +33,7 @@ function sdk.typeof(name) return {} end
 --- Equivalent to calling sdk.find_type_definition(typename):create_instance()
 --- @return REManagedObject
 --- @param typename string
---- @param simplify boolean
+--- @param simplify boolean|nil
 function sdk.create_instance(typename, simplify) return {} end
 
 --- Creates and returns a new System.String from str.

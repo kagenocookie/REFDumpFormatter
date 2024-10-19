@@ -36,6 +36,6 @@ function REMethodDefinition:is_static() return false end
 
 --- Equivalent to calling obj:call(args...)
 --- Can also use self(obj, args...)
---- @param obj RETypeDefinition
+--- @param obj REManagedObject|nil nil if the method is static
 --- @return any
 function REMethodDefinition:call(obj, ...) return {} end

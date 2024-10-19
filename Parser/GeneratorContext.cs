@@ -30,6 +30,8 @@ public partial class GeneratorContext
     public Func<Classname, GeneratorContext, bool>? ClassnameFilter { get; set; }
     public string OutputDirectory { get; }
 
+    public int TotalGeneratedCount { get; private set; }
+
     public GeneratorContext(Dictionary<string, REFDumpFormatter.ObjectDef> classNames, OutputOptions options, string outputDirectory)
     {
         this.classNames = classNames;
@@ -80,6 +82,7 @@ public partial class GeneratorContext
         var cls = new ClassSummary(name, clsName);
         var genericSection = string.Empty;
 
+        TotalGeneratedCount++;
         return cls;
     }
 

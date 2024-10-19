@@ -1,7 +1,7 @@
 -- https://cursey.github.io/reframework-book/api/types/REField.html
 
 --- @class REField
-local REField = {}
+REField = {}
 
 --- @return string
 function REField:get_name() return '' end

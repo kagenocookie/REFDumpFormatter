@@ -1,0 +1,9 @@
+--- @class System.Object
+--- @field ['.ctor'] fun(self): nil
+--- @field Equals fun(self, obj: System.Object): boolean
+--- @field Finalize fun(self): nil
+--- @field GetHashCode fun(self): integer
+--- @field GetType fun(self): System.Type
+--- @field MemberwiseClone fun(self): REManagedObject
+--- @field ReferenceEquals fun(objA: System.Object, objB: System.Object): boolean
+--- @field ToString fun(self): string

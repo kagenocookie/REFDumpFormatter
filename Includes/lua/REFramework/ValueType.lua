@@ -1,7 +1,7 @@
 -- https://cursey.github.io/reframework-book/api/types/ValueType.html
 
 --- @class ValueType
-local ValueType = {}
+ValueType = {}
 
 --- @return ValueType
 function ValueType.new(type_definition) return {} end

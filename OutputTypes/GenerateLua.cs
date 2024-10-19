@@ -24,6 +24,21 @@ public partial class GenerateLua
         { "System.ValueType", "ValueType" },
     };
 
+    private static readonly Dictionary<string, string> replaceFriendlyTypes = new() {
+        { "System.Boolean", "System.Boolean|boolean" },
+        { "System.Single", "System.Single|number" },
+        { "System.Double", "System.Double|number" },
+        { "System.Int16", "System.Int16|integer" },
+        { "System.UInt16", "System.UInt16|integer" },
+        { "System.Int32", "System.Int32|integer" },
+        { "System.UInt32", "System.UInt32|integer" },
+        { "System.Int64", "System.Int64|integer" },
+        { "System.UInt64", "System.UInt64|integer" },
+        { "System.SByte", "System.SByte|integer" },
+        { "System.Byte", "System.Byte|integer" },
+        { "System.String", "System.String|string" },
+    };
+
     public void GenerateOutput(OutputOptions options, IEnumerable<(string name, ObjectDef obj)> entries)
     {
         basePath ??= options.OutputFilepath ?? Path.Combine(Directory.GetParent(options.InputFilepath)!.FullName, "lua_reference");
@@ -37,6 +52,7 @@ public partial class GenerateLua
         }
 
         var ctx = new GeneratorContext(entries.ToDictionary(x => x.name, x => x.obj), options, basePath);
+        ctx.ClassnameFilter = (x, ctx) => x.Namespace != "System" || x.Name != "Object";
 
         var sb = new StringBuilder();
         var props = new HashSet<string>();
@@ -63,6 +79,8 @@ public partial class GenerateLua
             }
             sb.Clear();
         }
+
+        ctx.CopyIncludes();
     }
 
     private void HandleEnum(StringBuilder sb, ObjectDef item, Classname cls, GeneratorContext ctx)
@@ -209,7 +227,7 @@ public partial class GenerateLua
                     : method.Params
                         .Select((p, i) => p == null ? (null, $"arg{i}", "") : (Classname.Parse(p.Type, ctx, cls.Name), p.Name, p.ByRef ? "byref__" : ""));
                 var paramsStr = string.Join(", ", paramsList
-                    .Select(c => c.mod + (c.name ?? "UNNAMED") + ": " + (c.type?.ToStringFullName(true, true) ?? "any")));
+                    .Select(c => c.mod + (c.name ?? "UNNAMED") + ": " + (c.type == null ? "any" : GetFriendlyTypeName(c.type.ToStringFullName(true, true), ctx, cls.Name))));
                 if (!method.IsStatic) {
                     paramsStr = string.IsNullOrEmpty(paramsStr) ? "self" : "self, " + paramsStr;
                 }
@@ -250,8 +268,6 @@ public partial class GenerateLua
                 }
             }
         }
-
-        ctx.CopyIncludes();
     }
 
     private static string GetFriendlyTypeName(string? typeString, GeneratorContext ctx, Classname containingClass)
@@ -259,8 +275,15 @@ public partial class GenerateLua
         if (string.IsNullOrEmpty(typeString)) {
             return "any";
         }
+        if (replaceFriendlyTypes.TryGetValue(typeString, out var t)) {
+            return t;
+        }
         var parsedFieldType = Classname.Parse(typeString, ctx, containingClass);
-        return parsedFieldType?.ToStringFullName(true, true) ?? PreprocessTypeForDisplay(typeString);
+        t = parsedFieldType?.ToStringFullName(true, true) ?? PreprocessTypeForDisplay(typeString);
+        if (t.EndsWith("[]")) {
+            t = t + "|SystemArray";
+        }
+        return t;
     }
 
     private static string PreprocessTypeForDisplay(string? typeString)
