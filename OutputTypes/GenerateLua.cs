@@ -166,13 +166,12 @@ public partial class GenerateLua
                     }
                     var isAbstract = getter?.Value?.IsAbstract == true || setter?.Value?.IsAbstract == true;
 
-                    sb.Append($"---@field {propName}_k__BackingField {friendlyTypeName} ")
-                        .Append(fieldName)
+                    sb.Append($"---@field ['{fieldName}'] {friendlyTypeName} ")
                         .Append(isAbstract ? " ABSTRACT" : "")
                         .Append($" (Property: {gtstr} {ststr})");
                 } else {
                     var access = field.IsPrivate ? "private" : "public";
-                    sb.Append("---@field ").Append(fieldName).Append(' ').Append(friendlyTypeName).Append(' ').Append(access);
+                    sb.Append("---@field ").Append(friendlyTypeName).Append(' ').Append(access);
                 }
                 if (field.IsStatic) {
                     sb.Append(" static");
@@ -211,7 +210,7 @@ public partial class GenerateLua
                 }
 
                 if (cleanName.StartsWith(".ctor") || cleanName.StartsWith(".cctor")) {
-                    sb.AppendLine($"---@field __{cleanName[1..]} fun({paramsStr}): nil {methodName}");
+                    sb.AppendLine($"---@field ['{cleanName}'] fun({paramsStr}): nil");
                 } else {
                     var returnType = method.Returns?.Type switch {
                         null => "nil",
