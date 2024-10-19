@@ -38,7 +38,7 @@ Additional options:
 - `dotnet restore`
 
 ## Lua project library setup
-To enable the generated type hints in your own mod, the Lua extension by sumneko for VSCode lets you define a .luarc.json file at the root of your workspace and point at a library folder to seamlessly include all type info from there (though it might decide to die because of the sheer volume, so you may want to only take out the classes you care about into a separate folder), like so:
+To enable the generated type hints in your own mod, the Lua extension by sumneko for VSCode lets you define a .luarc.json file at the root of your workspace and point at a library folder to seamlessly include all type info from there, like so:
 
 ```json
 {

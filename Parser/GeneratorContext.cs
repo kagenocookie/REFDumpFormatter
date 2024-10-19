@@ -25,13 +25,21 @@ public partial class GeneratorContext
     public Dictionary<string, REFDumpFormatter.ObjectDef> classNames;
     public Dictionary<string, string>? remappedTypeNames;
     public OutputOptions options;
+    private readonly Dictionary<string, int> modifiedFilenames = new();
 
     public Func<Classname, GeneratorContext, bool>? ClassnameFilter { get; set; }
+    public string OutputDirectory { get; }
 
-    public GeneratorContext(Dictionary<string, REFDumpFormatter.ObjectDef> classNames, OutputOptions options)
+    public GeneratorContext(Dictionary<string, REFDumpFormatter.ObjectDef> classNames, OutputOptions options, string outputDirectory)
     {
         this.classNames = classNames;
         this.options = options;
+        OutputDirectory = outputDirectory;
+
+        if (!Directory.Exists(outputDirectory)) {
+            Directory.CreateDirectory(outputDirectory);
+        }
+        Console.WriteLine("Writing output to " + outputDirectory);
     }
 
     private static string CleanBracketGeneric(ReadOnlySpan<char> str)
@@ -109,6 +117,26 @@ public partial class GeneratorContext
         // foreach (var (enumValue, enumName) in enumSorter)
         while (enumSorter.TryDequeue(out var enumName, out var enumValue)) {
             yield return (enumName, enumValue);
+        }
+    }
+
+    public (string path, bool newFile) GetOutputFile(ClassSummary cls, int sequence = 0)
+    {
+        var ext = options.Type == OutputType.GenerateLua ? ".lua" : ".cs";
+        var filename = options.JoinByNamespace && !string.IsNullOrEmpty(cls.Name.Namespace) ? cls.Name.Namespace : cls.Name.StringifyForFilename();
+        var outputPath = options.JoinByNamespace
+            ? Path.Combine(OutputDirectory, (sequence == 0 ? filename : filename + "-" + sequence) + ext)
+            : Path.Combine(OutputDirectory, cls.Name.Namespace.Replace('.', Path.DirectorySeparatorChar), filename + ext);
+
+        if (!modifiedFilenames.TryGetValue(outputPath, out var writeCount)) {
+            modifiedFilenames[outputPath] = 1;
+            Directory.CreateDirectory(Directory.GetParent(outputPath)!.FullName);
+            return (outputPath, true);
+        } else if (writeCount > options.ClassesPerFile) {
+            return GetOutputFile(cls, sequence + 1);
+        } else {
+            modifiedFilenames[outputPath] = writeCount + 1;
+            return (outputPath, false);
         }
     }
 }

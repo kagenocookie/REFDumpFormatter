@@ -6,7 +6,6 @@ public partial class GenerateLua
 {
     private string basePath = null!;
     private HashSet<string>? overloads;
-    private readonly HashSet<string> modifiedFilenames = new();
 
     private static readonly string[] implicitParents = new[] { "System.Object", "System.ValueType" };
 
@@ -33,16 +32,11 @@ public partial class GenerateLua
             return;
         }
 
-        if (!Directory.Exists(basePath)) {
-            Directory.CreateDirectory(basePath);
-        }
-        Console.WriteLine("Writing output to " + basePath);
-
         if (options.IgnoreOverloads) {
             overloads = new();
         }
 
-        var ctx = new GeneratorContext(entries.ToDictionary(x => x.name, x => x.obj), options);
+        var ctx = new GeneratorContext(entries.ToDictionary(x => x.name, x => x.obj), options, basePath);
 
         var sb = new StringBuilder();
         var props = new HashSet<string>();
@@ -60,16 +54,12 @@ public partial class GenerateLua
             }
             sb.AppendLine();
 
-            var filename = options.JoinByNamespace && !string.IsNullOrEmpty(cls.Name.Namespace) ? cls.Name.Namespace : cls.Name.StringifyForFilename();
-            var outputPath = options.JoinByNamespace
-                ? Path.Combine(basePath, filename + ".lua")
-                : Path.Combine(basePath, cls.Name.Namespace.Replace('.', Path.DirectorySeparatorChar), filename + ".lua");
-            Directory.CreateDirectory(Directory.GetParent(outputPath)!.FullName);
+            var (outputPath, newFile) = ctx.GetOutputFile(cls);
 
-            if (modifiedFilenames.Add(filename) == false) {
-                File.AppendAllText(outputPath, sb.ToString());
-            } else {
+            if (newFile) {
                 File.WriteAllText(outputPath, sb.ToString());
+            } else {
+                File.AppendAllText(outputPath, sb.ToString());
             }
             sb.Clear();
         }
@@ -85,7 +75,7 @@ public partial class GenerateLua
             return;
         }
 
-        sb.Append(enumType).AppendLine();
+        sb.Append(' ').Append(enumType).AppendLine();
 
         sb.Append("local ").Append(cls.Name).Append(" = {").AppendLine();
 

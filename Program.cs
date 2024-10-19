@@ -149,11 +149,13 @@ var filteredEntries = entries.Where(e => {
 }).Select(e => (e.Key, e.Value));
 
 var options = new OutputOptions() {
+    Type = action,
     InputFilepath = inputFilepath,
     OutputFilepath = string.IsNullOrWhiteSpace(outputFilepath) ? null : outputFilepath,
     FieldOffsets = fieldOffsets,
     IgnoreOverloads = ignoreOverloads.Value,
     JoinByNamespace = joinByNamespace.Value,
+    ClassesPerFile = 250,
 };
 switch (action)
 {

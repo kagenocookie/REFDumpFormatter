@@ -34,11 +34,6 @@ public partial class GenerateCsharp
             return;
         }
 
-        if (!Directory.Exists(basePath)) {
-            Directory.CreateDirectory(basePath);
-        }
-        Console.WriteLine("Writing output to " + basePath);
-
         if (options.IgnoreOverloads) {
             overloads = new();
         }
@@ -140,7 +135,7 @@ public partial class GenerateCsharp
         //         || e.name.StartsWith("app.AIBlackBoardCollection`13")
         //     );
 
-        var ctx = new GeneratorContext(entries.ToDictionary(x => x.name, x => x.obj), options);
+        var ctx = new GeneratorContext(entries.ToDictionary(x => x.name, x => x.obj), options, basePath);
         ctx.classNames.Add("System.Object", new ObjectDef() {
             methods = new Dictionary<string, MethodDef>() {
                 { "Equals0", new MethodDef() { Returns = new ParamDef() { Type = "System.Boolean" }, Flags = "Virtual" }},
@@ -174,11 +169,7 @@ public partial class GenerateCsharp
             // TODO app.EPVExpertMonsterSpell.<getTargetElements>d__23
             // TODO System.Array.InternalEnumerator<System.Collections.Generic.KeyValuePair<app.TalkDefine.NpcTalkTiming,System.Collections.Generic.List<app.NpcTalkSituationWrapper>>>
 
-            var filename = options.JoinByNamespace && !string.IsNullOrEmpty(cls.Name.Namespace) ? cls.Name.Namespace : cls.Name.StringifyForFilename();
-            var outputPath = options.JoinByNamespace
-                ? Path.Combine(basePath, filename + ".cs")
-                : Path.Combine(basePath, cls.Name.Namespace.Replace('.', Path.DirectorySeparatorChar), filename + ".cs");
-            var isFirstFileEntry = modifiedFilenames.Add(filename) == true;
+            var (outputPath, newFile) = ctx.GetOutputFile(cls);
 
             parents.Clear();
             var parent = cls.Name.Parent;
@@ -189,7 +180,7 @@ public partial class GenerateCsharp
             parents.Reverse();
             var tabs = new string('\t', parents.Count + 1);
 
-            if (isFirstFileEntry && !string.IsNullOrEmpty(cls.Name.Namespace)) {
+            if (newFile && !string.IsNullOrEmpty(cls.Name.Namespace)) {
                 sb.Append("namespace ").Append(cls.Name.Namespace).AppendLine(";").AppendLine();
             }
 
@@ -219,7 +210,7 @@ public partial class GenerateCsharp
 
             Directory.CreateDirectory(Directory.GetParent(outputPath)!.FullName);
 
-            if (isFirstFileEntry) {
+            if (newFile) {
                 File.WriteAllText(outputPath, sb.ToString());
             } else {
                 File.AppendAllText(outputPath, sb.ToString());
