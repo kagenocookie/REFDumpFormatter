@@ -271,6 +271,7 @@ public partial class GenerateCsharp
     private void HandleClass(StringBuilder sb, HashSet<string> props, ObjectDef item, ClassSummary cls, string tabs, string? flags, GeneratorContext ctx)
     {
         overloads?.Clear();
+        props.Clear();
         string defType;
         if (item.flags?.Contains("ClassSemanticsMask") == true) {
             defType = "interface ";
