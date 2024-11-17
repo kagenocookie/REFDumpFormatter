@@ -13,6 +13,8 @@ public class FieldDef
     [JsonPropertyName("offset_from_base")]
     public string OffsetFromBase { get; set; } = string.Empty;
 
+    public int OffsetNumber => Convert.ToInt32(OffsetFromBase, 16);
+
     [JsonPropertyName("offset_from_fieldptr")]
     public string OffsetFromFieldPointer { get; set; } = string.Empty;
 
