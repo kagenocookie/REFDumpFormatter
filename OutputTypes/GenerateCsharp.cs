@@ -7,7 +7,6 @@ public partial class GenerateCsharp
     private string basePath = null!;
     private List<string> parents = new();
     private HashSet<string>? overloads;
-    private readonly HashSet<string> modifiedFilenames = new();
 
     private static readonly string[] implicitParents = new[] { "System.Object", "System.ValueType" };
 
@@ -38,6 +37,7 @@ public partial class GenerateCsharp
             overloads = new();
         }
 
+        Directory.CreateDirectory(basePath);
         File.WriteAllText(Path.Combine(basePath, "SdkCsharp.sln"), """
         Microsoft Visual Studio Solution File, Format Version 12.00
         # Visual Studio Version 17
@@ -88,6 +88,10 @@ public partial class GenerateCsharp
         // hopefully comprehensive minimal test cases (DD2):
         // entries = entries
         //     .Where(e => false
+        //         // void delegate
+        //         || e.name == "app.HitController.EventDie"
+        //         // required for app.HitController.EventDie to detect the namespace properly
+        //         || e.name == "app.HitController"
         //         // contains a Dictionary<GeneratorID,List<LocalCellData>[]> which ends up as both generic syntaxes in one line
         //         || e.name == "app.GenerateManager"
         //         // class with abstract property
@@ -178,7 +182,7 @@ public partial class GenerateCsharp
                 parent = parent.Parent;
             }
             parents.Reverse();
-            var tabs = new string('\t', parents.Count + 1);
+            var tabs = new string('\t', parents.Count);
 
             if (newFile && !string.IsNullOrEmpty(cls.Name.Namespace)) {
                 sb.Append("namespace ").Append(cls.Name.Namespace).AppendLine(";").AppendLine();
@@ -198,11 +202,13 @@ public partial class GenerateCsharp
 
             if (item.parent == "System.Enum") {
                 HandleEnum(sb, item, tabs, cls.Name, ctx);
+            } else if (item.parent == "System.MulticastDelegate") {
+                HandleDelegate(sb, props, item, cls, tabs, ctx);
             } else {
-                HandleClass(sb, props, item, cls, tabs, item.flags, ctx);
+                HandleClass(sb, props, item, cls, tabs, ctx);
             }
 
-            for (int i = parents.Count; i >= 0; --i) {
+            for (int i = parents.Count - 1; i >= 0; --i) {
                 sb.Append('\t', i).Append('}').AppendLine();
             }
 
@@ -235,18 +241,21 @@ public partial class GenerateCsharp
         var enumType = ctx.GetEnumType(item, cls);
 
         if (item.fields == null || enumType == null) {
-            sb.Append(tabs); sb.Length--; sb.Append("public enum ").Append(cls.Name).Append(" { }").AppendLine()
+            sb.Append(tabs); sb.Append("public enum ").Append(cls.Name).Append(" { }").AppendLine()
                 .AppendLine("// empty or invalid enum");
             return;
         }
 
 
-        sb.Append(tabs); sb.Length--; sb.Append("public enum ").Append(cls.Name).Append(" : ").AppendLine(enumType)
-            .Append(tabs); sb.Length--; sb.Append('{').AppendLine();
+        sb.Append(tabs); sb.Append("public enum ").Append(cls.Name).Append(" : ").AppendLine(enumType)
+            .Append(tabs); sb.Append('{').AppendLine();
 
+        var subtabs = tabs + '\t';
         foreach (var (enumName, enumValue) in ctx.GetSortedEnumValues(item)) {
-            sb.AppendLine($"{tabs}{enumName} = {enumValue},");
+            sb.AppendLine($"{subtabs}{enumName} = {enumValue},");
         }
+
+        sb.AppendLine(tabs).Append('}');
     }
 
     private static bool HasVirtualInAnyBaseClass(string? classname, string method, Dictionary<string, REFDumpFormatter.ObjectDef> classes)
@@ -268,7 +277,29 @@ public partial class GenerateCsharp
         return false;
     }
 
-    private void HandleClass(StringBuilder sb, HashSet<string> props, ObjectDef item, ClassSummary cls, string tabs, string? flags, GeneratorContext ctx)
+    private void HandleDelegate(StringBuilder sb, HashSet<string> props, ObjectDef item, ClassSummary cls, string tabs, GeneratorContext ctx)
+    {
+        var invokeMethod = item.methods?.FirstOrDefault(m => m.Key == "Invoke" + m.Value.id).Value;
+        if (invokeMethod == null) {
+            HandleClass(sb, props, item, cls, tabs, ctx);
+            return;
+        }
+
+        var returntype = invokeMethod.Returns?.Type;
+        sb.Append(tabs)
+            .Append("public delegate ")
+            .Append(returntype == null || returntype == "System.Void" ? "void" : PreprocessTypeForDisplay(returntype))
+            .Append(' ')
+            .Append(cls.Name.Name)
+            .Append('(');
+        if (invokeMethod.Params != null) {
+            sb.AppendJoin(", ", invokeMethod.Params.Select((param, i) => PreprocessTypeForDisplay(param?.Type) + " " + PreprocessNameForDisplay(param?.Name, i)));
+        }
+        sb.AppendLine(");");
+
+        // HandleClass(sb, props, item, cls, tabs + "// ", ctx);
+    }
+    private void HandleClass(StringBuilder sb, HashSet<string> props, ObjectDef item, ClassSummary cls, string tabs, GeneratorContext ctx)
     {
         overloads?.Clear();
         props.Clear();
@@ -283,7 +314,8 @@ public partial class GenerateCsharp
             defType = "partial class ";
         }
 
-        sb.Append(tabs); sb.Length--; sb.Append("public ").Append(defType).Append(cls.Name.ToStringFullName(false, false));
+        var subtabs = tabs + '\t';
+        sb.Append(tabs); sb.Append("public ").Append(defType).Append(cls.Name.ToStringFullName(false, false));
         // handle parents, interfaces
         var hasParent = !string.IsNullOrEmpty(item.parent) && !implicitParents.Contains(item.parent);
         if (hasParent) {
@@ -296,7 +328,7 @@ public partial class GenerateCsharp
             sb.AppendJoin(", ", interfaces);
         }
 
-        sb.AppendLine().Append(tabs); sb.Length--; sb.Append('{').AppendLine();
+        sb.AppendLine().Append(tabs); sb.Append('{').AppendLine();
 
         if (item.fields != null) {
             foreach (var (fieldName, field) in item.fields) {
@@ -323,12 +355,18 @@ public partial class GenerateCsharp
                             ? baseAccess + " override"
                             : baseAccess + " virtual";
                     }
-                    sb.AppendLine($"{tabs}{baseAccess} {friendlyTypeName} {propName} {{ {gtstr} {ststr} }}{offset}");
+                    sb.AppendLine($"{subtabs}{baseAccess} {friendlyTypeName} {propName} {{ {gtstr} {ststr} }}{offset}");
                     props.Add(propName);
+                } else if (item.methods?.FirstOrDefault(m => m.Key.StartsWith("add_") && m.Key.AsSpan()[4..^((int)Math.Log10(m.Value.id) + 1)].SequenceEqual(fieldName)).Value is MethodDef eventMethod) {
+                    // events included for completeness sake but probably useless for the foreseeable future
+                    var access = eventMethod.IsPrivate ? "private " : "public ";
+                    var evtType = eventMethod.Params != null && eventMethod.Params.Length > 0 && eventMethod.Params[0] != null ? GetFriendlyTypeName(eventMethod.Params[0]!.Type, ctx, cls.Name) : "/*Could not determine event type*/System.Action";
+                    var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
+                    sb.Append(subtabs).AppendLine($"{access}{eventMethod.Modifiers}event {evtType} {fieldName};{offset}");
                 } else {
                     var baseAccess = field.IsPrivate ? "private" : "public";
                     var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
-                    sb.AppendLine($"{tabs}{baseAccess} {field.Modifiers}{friendlyTypeName} {fieldName};{offset}");
+                    sb.AppendLine($"{subtabs}{baseAccess} {field.Modifiers}{friendlyTypeName} {fieldName};{offset}");
                 }
             }
         }
@@ -362,7 +400,7 @@ public partial class GenerateCsharp
                                 ? baseAccess + " override"
                                 : baseAccess + " virtual";
                         }
-                        sb.Append(tabs).Append(baseAccess).Append($" {GetFriendlyTypeName(propType, ctx, cls.Name)} {propName} {{");
+                        sb.Append(subtabs).Append(baseAccess).Append($" {GetFriendlyTypeName(propType, ctx, cls.Name)} {propName} {{");
 
                         if (getter?.Value != null) {
                             if (getter.Value.Value.IsPrivate && baseAccess != "private") sb.Append(" private");
@@ -374,16 +412,6 @@ public partial class GenerateCsharp
                         }
                         sb.AppendLine(" }");
                         props.Add(propName);
-                    }
-                }
-
-                // events included for completeness sake but probably useless for the foreseeable future
-                if (methodName.StartsWith("add_") || methodName.StartsWith("remove_")) {
-                    var eventName = methodName.Replace(method.id.ToString(), "")[(methodName.StartsWith("add_") ? 4 : 7)..];
-                    if (props.Add(eventName)) {
-                        var access = method.IsPrivate ? "private " : "public ";
-                        var evtType = method.Params != null && method.Params.Length > 0 && method.Params[0] != null ? GetFriendlyTypeName(method.Params[0]!.Type, ctx, cls.Name) : "/*Could not determine event type*/System.Action";
-                        sb.Append(tabs).AppendLine($"// {access}{method.Modifiers}event {evtType} {eventName};");
                     }
                 }
             }
@@ -406,10 +434,10 @@ public partial class GenerateCsharp
                     : method.Params
                         .Select((p, i) => p == null ? (null, $"arg{i}", "") : (Classname.Parse(p.Type, ctx, cls.Name), p.Name, p.ByRef ? "out " : ""));
                 var paramsStr = string.Join(", ", paramsList
-                    .Select(c => c.mod + (c.type?.ToStringFullName(true, true) ?? "object?") + " " + PreprocessNameForDisplay(c.name)));
+                    .Select((c, i) => c.mod + (c.type?.ToStringFullName(true, true) ?? "object?") + " " + PreprocessNameForDisplay(c.name, i)));
 
                 if (cleanName.StartsWith(".ctor")) {
-                    sb.AppendLine($"{tabs}public {cls.Name.Name}({paramsStr}) {{}}");
+                    sb.AppendLine($"{subtabs}public {cls.Name.Name}({paramsStr}) {{}}");
                 } else if (cleanName.StartsWith(".cctor")) {
                     // idk what these are, maybe be a compiler-generated default assigner?
                     // sb.AppendLine($"{tabs}/// {methodName} -- {cls.Name.Name}({paramsStr})
@@ -426,7 +454,7 @@ public partial class GenerateCsharp
                     }
                     if (cleanName.Contains('.')) {
                         // explicit interface implementations
-                        sb.AppendLine($"{tabs}{returnType} {cleanName}({paramsStr}) => throw new NotImplementedException();").AppendLine();
+                        sb.AppendLine($"{subtabs}{returnType} {cleanName}({paramsStr}) => throw new NotImplementedException();").AppendLine();
                     } else {
                         var baseAccess = method.IsPrivate ? "private " : "public ";
                         if (method.IsAbstract) {
@@ -439,17 +467,20 @@ public partial class GenerateCsharp
                             baseAccess = baseAccess + "static ";
                         }
                         var body = method.IsAbstract ? ";" : " => throw new NotImplementedException();";
-                        sb.AppendLine($"{tabs}{baseAccess}{returnType} {cleanName}({paramsStr}){body}").AppendLine();
+                        sb.AppendLine($"{subtabs}{baseAccess}{returnType} {cleanName}({paramsStr}){body}").AppendLine();
                     }
                 }
             }
         }
+
+        sb.Append(tabs).AppendLine("}");
     }
 
-    private static string PreprocessNameForDisplay(string? name)
+    private static string PreprocessNameForDisplay(string? name, int i)
     {
         if (name == "object") return "@object";
-        return name ?? "UNNAMED";
+        if (name == "delegate") return "@delegate";
+        return string.IsNullOrEmpty(name) ? "arg" + i : name;
     }
 
     private static string GetFriendlyTypeName(string? typeString, GeneratorContext ctx, Classname containingClass)

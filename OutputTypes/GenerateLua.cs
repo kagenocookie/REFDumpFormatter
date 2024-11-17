@@ -227,7 +227,7 @@ public partial class GenerateLua
                     : method.Params
                         .Select((p, i) => p == null ? (null, $"arg{i}", "") : (Classname.Parse(p.Type, ctx, cls.Name), p.Name, p.ByRef ? "byref__" : ""));
                 var paramsStr = string.Join(", ", paramsList
-                    .Select(c => c.mod + (c.name ?? "UNNAMED") + ": " + (c.type == null ? "any" : GetFriendlyTypeName(c.type.ToStringFullName(true, true), ctx, cls.Name))));
+                    .Select((c, i) => c.mod + (string.IsNullOrEmpty(c.name) ? "arg" + i : c.name) + ": " + (c.type == null ? "any" : GetFriendlyTypeName(c.type.ToStringFullName(true, true), ctx, cls.Name))));
                 if (!method.IsStatic) {
                     paramsStr = string.IsNullOrEmpty(paramsStr) ? "self" : "self, " + paramsStr;
                 }

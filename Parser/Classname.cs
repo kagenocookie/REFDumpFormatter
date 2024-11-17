@@ -294,7 +294,11 @@ public class Classname
             //     throw new Exception("Generic type parameter is supposed to have a containing class oi");
             // }
             int idx;
-            if (cls.Name.EndsWith("[]")) {
+            if (cls.Name.EndsWith("[][]")) {
+                // dmc5 template args end with &, skip that when parsing
+                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[2..^5] : cls.Name.AsSpan()[2..^4]);
+                cls.IsArray = true;
+            } else if (cls.Name.EndsWith("[]")) {
                 // dmc5 template args end with &, skip that when parsing
                 idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[2..^3] : cls.Name.AsSpan()[2..^2]);
                 cls.IsArray = true;
@@ -312,7 +316,10 @@ public class Classname
             }
             int idx;
             bool isArray;
-            if (cls.Name.EndsWith("[]")) {
+            if (cls.Name.EndsWith("[][]")) {
+                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[1..^5] : cls.Name.AsSpan()[1..^4]);
+                isArray = true;
+            } else if (cls.Name.EndsWith("[]")) {
                 idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[1..^3] : cls.Name.AsSpan()[1..^2]);
                 isArray = true;
             } else {
@@ -406,7 +413,8 @@ public class Classname
         parser.containingClass = containingClass;
         var cls = Parse(ref parser, ctx, ignoreNonDefinitions);
         if (parser.pos < parser.text.Length) {
-            throw new Exception("Expected EOF");
+            // throw new Exception("Expected EOF");
+            return null;
         }
         return cls;
     }
