@@ -157,12 +157,22 @@ var options = new OutputOptions() {
     JoinByNamespace = joinByNamespace.Value,
     ClassesPerFile = 250,
 };
+GeneratorContext? ctx = null;
 switch (action)
 {
     case OutputType.GenerateCsharp:
-        new GenerateCsharp().GenerateOutput(options, filteredEntries);
+        ctx = new GenerateCsharp().GenerateOutput(options, filteredEntries);
         break;
     case OutputType.GenerateLua:
-        new GenerateLua().GenerateOutput(options, filteredEntries);
+        ctx = new GenerateLua().GenerateOutput(options, filteredEntries);
         break;
+}
+
+if (ctx != null && ctx.FailedClassnames.Count != 0) {
+    Console.Error.WriteLine($"{ctx.FailedClassnames.Count} classnames failed to generate:");
+    foreach (var failed in ctx.FailedClassnames) {
+        Console.Error.WriteLine(failed);
+    }
+    Console.WriteLine("Press any key to close");
+    Console.ReadKey();
 }

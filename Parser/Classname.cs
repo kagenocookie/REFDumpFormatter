@@ -338,11 +338,12 @@ public class Classname
         var genericSeparator = parser.text.IndexOf('`');
         ParseBaseName(ref res, ref parser, genericSeparator == -1 ? parser.text.Length : genericSeparator, ctx);
         if (genericSeparator != -1) {
-            if (parser.text.Length == 1023) {
-                // edge case: the il2cpp dump doesn't print past 1023 length (or the game devs limited them I guess)
+            if (parser.text.Length >= 1023) {
+                // edge case: the il2cpp dump doesn't print past 1023 length
                 // discard everything past whatever the last separator was... though we know there should've been at least one more param
                 // but also there could be more, perhaps if we automatically append them when we see a member trying to access an unknown generic arg?
                 parser = new StringParser(parser.text.Slice(0, parser.text.LastIndexOf("],[") + 1).ToString() + "]");
+                parser.MayFail = true;
             }
             var genericSep = parser.text.IndexOfAnyOffset('[', '<', '.', genericSeparator);
             if (genericSep == -1) {
@@ -411,11 +412,19 @@ public class Classname
         }
         var parser = new StringParser(name.AsSpan());
         parser.containingClass = containingClass;
-        var cls = Parse(ref parser, ctx, ignoreNonDefinitions);
-        if (parser.pos < parser.text.Length) {
-            // throw new Exception("Expected EOF");
-            return null;
+        try {
+            var cls = Parse(ref parser, ctx, ignoreNonDefinitions);
+            if (parser.pos < parser.text.Length) {
+                // throw new Exception("Expected EOF");
+                return null;
+            }
+            return cls;
+        } catch (Exception) {
+            if (parser.MayFail) {
+                ctx.FailedClassnames.Add(name);
+                return null;
+            }
+            throw;
         }
-        return cls;
     }
 }

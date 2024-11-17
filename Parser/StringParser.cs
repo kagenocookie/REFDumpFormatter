@@ -13,4 +13,5 @@ public ref struct StringParser
     public Classname? parentClass;
     public Classname? containingClass;
     public char Cur => pos < text.Length ? text[pos] : '\0';
+    public bool MayFail { get; set; }
 }

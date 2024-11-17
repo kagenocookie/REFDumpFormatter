@@ -25,12 +25,12 @@ public partial class GenerateCsharp
         { "System.String", "string" },
     };
 
-    public void GenerateOutput(OutputOptions options, IEnumerable<(string name, ObjectDef obj)> entries)
+    public GeneratorContext? GenerateOutput(OutputOptions options, IEnumerable<(string name, ObjectDef obj)> entries)
     {
         basePath ??= options.OutputFilepath ?? Path.Combine(Directory.GetParent(options.InputFilepath)!.FullName, "csharp_reference");
         if (File.Exists(basePath)) {
             Console.Error.WriteLine("ERROR: output path must be a folder, not a file.");
-            return;
+            return null;
         }
 
         if (options.IgnoreOverloads) {
@@ -225,6 +225,7 @@ public partial class GenerateCsharp
             }
             sb.Clear();
         }
+        return ctx;
     }
 
     private static bool FilterClassnames(Classname cls, GeneratorContext ctx)

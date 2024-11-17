@@ -31,6 +31,7 @@ public partial class GeneratorContext
     public string OutputDirectory { get; }
 
     public int TotalGeneratedCount { get; private set; }
+    public HashSet<string> FailedClassnames { get; } = new();
 
     public GeneratorContext(Dictionary<string, REFDumpFormatter.ObjectDef> classNames, OutputOptions options, string outputDirectory)
     {
