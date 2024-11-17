@@ -3,6 +3,7 @@
 --- @class ValueType
 ValueType = {}
 
+--- @param type_definition RETypeDefinition
 --- @return ValueType
 function ValueType.new(type_definition) return {} end
 

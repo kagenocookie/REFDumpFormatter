@@ -7,6 +7,7 @@ REManagedObject = {}
 --- Full function prototype can be passed as method_name if there are multiple functions with the same name but different parameters.
 --- e.g. self:call("foo(System.String, System.Single, System.UInt32, System.Object)", a, b, c, d)
 --- Valid method names can be found in the Object Explorer. Find the type you're looking for, and valid methods will be found under TDB Methods.
+--- @return any
 function REManagedObject:call(method_name, ...) end
 
 --- @return RETypeDefinition
@@ -29,10 +30,12 @@ function REManagedObject:get_reference_count() end
 function REManagedObject:deserialize_native(data, objects) end
 
 --- Increments the object's internal reference count.
-function REManagedObject:add_ref() end
+--- @return REManagedObject
+function REManagedObject:add_ref() return {} end
 
 --- Increments the object's internal reference count without REFramework managing it. Any objects created with REFramework and also using this method will not be deleted after the Lua state is destroyed.
-function REManagedObject:add_ref_permanent() end
+--- @return REManagedObject
+function REManagedObject:add_ref_permanent() return {} end
 
 --- Decrements the object's internal reference count. Destroys the object if it reaches 0. Can only be used on objects managed by Lua.
 function REManagedObject:release() end

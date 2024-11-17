@@ -184,6 +184,6 @@ function sdk.float_to_ptr(number) end
 
 --- @enum sdk.PreHookResult
 sdk.PreHookResult = {
-    SKIP_ORIGINAL = 1,
-    CALL_ORIGINAL = 2,
+    SKIP_ORIGINAL = 0,
+    CALL_ORIGINAL = 1,
 }

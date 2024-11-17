@@ -3,15 +3,12 @@
 imgui = {}
 
 --- Creates a new window with the title of name.
---- open is a bool. Can be nil. If not nil, a close button will be shown in the top right of the window.
---- flags - ImGuiWindowFlags.
 --- begin_window must have a corresponding end_window call.
 --- This function may only be called in on_frame, not on_draw_ui.
---- Returns a bool. Returns false if the user wants to close the window.
 ---@param name string
----@param open boolean|nil
+---@param open boolean|nil Can be nil. If not nil, a close button will be shown in the top right of the window.
 ---@param flags ImGuiWindowFlags|number|nil
----@return boolean
+---@return boolean shouldClose Returns false if the user wants to close the window.
 function imgui.begin_window(name, open, flags) return false end
 
 --- Ends the last begin_window call. Required.
@@ -28,9 +25,10 @@ function imgui.begin_group() end
 
 function imgui.end_group() end
 
+--- Draw a rectangle around the elements between begin_rect and end_rect
 function imgui.begin_rect() end
 
---- These two methods draw a rectangle around the elements between begin_rect and end_rect
+--- Draw a rectangle around the elements between begin_rect and end_rect
 ---@param additional_size number|nil
 ---@param rounding number|nil
 function imgui.end_rect(additional_size, rounding) end
@@ -72,7 +70,7 @@ function imgui.text(text) end
 --- Draws text with color.
 --- color is an integer color in the form ARGB.
 ---@param text string
----@param color number (unsigned int)
+---@param color integer (unsigned int)
 function imgui.text_colored(text, color) end
 
 --- Returns a tuple of changed, value
@@ -131,104 +129,90 @@ function imgui.drag_float4(label, value, speed, min, max, display_format) return
 ---@return boolean,number
 function imgui.drag_int(label, value, speed, min, max, display_format) return false, 0 end
 
---- Returns a tuple of changed, value
 ---@param label string
 ---@param value number
 ---@param min number
 ---@param max number
 ---@param display_format string|nil (ex "%.3f")
----@return boolean,number
+---@return boolean changed, number value
 function imgui.slider_float(label, value, min, max, display_format) return false, 0 end
 
---- Returns a tuple of changed, value
 ---@param label string
 ---@param value integer
 ---@param min integer
 ---@param max integer
 ---@param display_format string|nil (ex "%d")
----@return boolean,integer
+---@return boolean changed, integer value
 function imgui.slider_int(label, value, min, max, display_format) return false, 0 end
 
---- Returns a tuple of changed, value, selection_start, selection_end
 ---@param label string
 ---@param value string
 ---@param flags integer|nil
----@return boolean,string,number,number
+---@return boolean changed, string value, integer selection_start, integer selection_end
 function imgui.input_text(label, value, flags) return false, '', 0, 0 end
 
---- Returns a tuple of changed, value, selection_start, selection_end
 ---@param label string
 ---@param value string
 ---@param size Vector2f|integer|nil
 ---@param flags integer|nil
----@return boolean,string,number,number
+---@return boolean changed, string value, integer selection_start, integer selection_end
 function imgui.input_text_multiline(label, value, size, flags) return false, '', 0, 0 end
 
---- Returns a tuple of changed, value.
 --- changed = true when selection changes.
 --- value is the selection index within values (a table)
---- values can be a table with any type of keys, as long as the values are strings.
 ---@param label string
 ---@param selection number
----@param values table
----@return boolean,number
+---@param values table can be a table with any type of keys, as long as the values are strings.
+---@return boolean changed, number value
 function imgui.combo(label, selection, values) return false, 0 end
 
---- Returns a tuple of changed, value. color is an integer color in the form ABGR which imgui and draw APIs expect.
 ---@param label string
----@param color number
+---@param color integer integer color in the form ABGR which imgui and draw APIs expect.
 ---@param flags ImGuiColorEditFlags|number
----@return boolean,number
+---@return boolean changed, number value
 function imgui.color_picker(label, color, flags) return false, 0 end
 
---- Returns a tuple of changed, value. color is an integer color in the form ARGB.
 ---@param label string
----@param color number
+---@param color integer integer color in the form ARGB.
 ---@param flags ImGuiColorEditFlags|number
----@return boolean,number
+---@return boolean changed, number value
 function imgui.color_picker_argb(label, color, flags) return false, 0 end
 
---- Returns a tuple of changed, value
 ---@param label string
 ---@param color Vector3f
----@param flags ImGuiColorEditFlags|number
----@return boolean,Vector3f
+---@param flags ImGuiColorEditFlags|number|nil
+---@return boolean changed, Vector3f value
 function imgui.color_picker3(label, color, flags) return false, {} end
 
---- Returns a tuple of changed, value
 ---@param label string
 ---@param color Vector4f
----@param flags ImGuiColorEditFlags|number
----@return boolean,Vector4f
+---@param flags ImGuiColorEditFlags|number|nil
+---@return boolean changed, Vector4f value
 function imgui.color_picker4(label, color, flags) return false, {} end
 
---- Returns a tuple of changed, value. color is an integer color in the form ABGR which imgui and draw APIs expect.
 ---@param label string
----@param color number
----@param flags ImGuiColorEditFlags|number
----@return boolean,number
+---@param color integer integer color in the form ABGR which imgui and draw APIs expect.
+---@param flags ImGuiColorEditFlags|number|nil
+---@return boolean changed, number value
 function imgui.color_edit(label, color, flags) return false, 0 end
 
 --- Returns a tuple of changed, value. color is an integer color in the form ARGB.
 ---@param label string
----@param color number
----@param flags ImGuiColorEditFlags|number
----@return boolean,number
+---@param color integer integer color in the form ARGB.
+---@param flags ImGuiColorEditFlags|number|nil
+---@return boolean changed, number value
 function imgui.color_edit_argb(label, color, flags) return false, 0 end
 
---- Returns a tuple of changed, value
 ---@param label string
 ---@param color Vector3f
----@param flags ImGuiColorEditFlags|number
----@return boolean,Vector3f
+---@param flags ImGuiColorEditFlags|number|nil
+---@return boolean changed, Vector3f value
 function imgui.color_edit3(label, color, flags) return false, {} end
 
---- Returns a tuple of changed, value
---- flags for color_picker/edit APIs: ImGuiColorEditFlags
 ---@param label string
 ---@param color Vector4f
 ---@param flags ImGuiColorEditFlags|number|nil
----@return boolean,Vector4f
+---@return boolean changed, Vector4f value
 function imgui.color_edit4(label, color, flags) return false, {} end
 
 --- Begins a tree node
@@ -642,7 +626,6 @@ function imgui.table_next_column() return false end
 function imgui.table_set_column_index(column_index) return false end
 
 --- Sets up a column in the current table with the specified label, flags, init_width_or_weight, and user_id.
----comment
 ---@param label string
 ---@param flags integer
 ---@param init_width_or_weight number
