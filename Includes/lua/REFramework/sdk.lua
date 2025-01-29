@@ -90,7 +90,7 @@ function sdk.create_double(value) return {} end
 
 --- Returns an REResource.
 --- If the typename does not correctly correspond to the resource file or is not a resource type, nil will be returned.
---- @return REManagedObject
+--- @return REResource
 --- @param typename string
 --- @param resource_path string
 function sdk.create_resource(typename, resource_path) return {} end
@@ -111,11 +111,13 @@ function sdk.deserialize(data) return {} end
 --- @param object REManagedObject
 --- @param type_definition RETypeDefinition
 --- @param method_name string
+--- @return any
 function sdk.call_native_func(object, type_definition, method_name, ...) return {} end
 
 --- Return value is dependent on what the method returns.
 --- Full function prototype can be passed as method_name if there are multiple functions with the same name but different parameters.
 --- Alternative calling method: managed_object:call(method_name, args...)
+--- @return any
 function sdk.call_object_func(managed_object, method_name, ...) return {} end
 
 --- @param object REManagedObject
@@ -128,7 +130,7 @@ function sdk.get_native_field(object, type_definition, field_name) return {} end
 --- @param type_definition RETypeDefinition
 --- @param field_name string
 --- @param value any
-function sdk.set_native_field(object, type_definition, field_name, value) return {} end
+function sdk.set_native_field(object, type_definition, field_name, value) end
 
 --- Returns a REManagedObject*. Returns the current camera being used by the engine.
 --- @return REManagedObject
@@ -156,6 +158,12 @@ function sdk.is_managed_object(value) end
 --- @param value any
 --- @return REManagedObject|nil
 function sdk.to_managed_object(value) return {} end
+
+--- Attempts to convert obj to t
+--- @param obj any number or void*
+--- @param t string|RETypeDefinition
+--- @return ValueType|nil
+function sdk.to_valuetype(obj, t) return {} end
 
 --- Attempts to convert value to a double.
 --- @param value any
