@@ -364,7 +364,7 @@ public partial class GenerateCsharp
                     if (setter?.Value?.IsStatic == true || getter?.Value?.IsStatic == true) {
                         baseAccess = baseAccess + " static";
                     }
-                    var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
+                    var offset = ctx.options.FieldOffsets == true ? $" // offset: {field.OffsetFromBase} ({field.OffsetNumber})" : string.Empty;
                     if (getter?.Value?.IsAbstract == true || setter?.Value?.IsAbstract == true) {
                         baseAccess = baseAccess + " abstract";
                     } else if (getter?.Value?.IsVirtual == true || setter?.Value?.IsVirtual == true) {
@@ -378,12 +378,12 @@ public partial class GenerateCsharp
                     // events included for completeness sake but probably useless for the foreseeable future
                     var access = eventMethod.IsPrivate ? "private " : "public ";
                     var evtType = eventMethod.Params != null && eventMethod.Params.Length > 0 && eventMethod.Params[0] != null ? GetFriendlyTypeName(eventMethod.Params[0]!.Type, ctx, cls.Name) : "/*Could not determine event type*/System.Action";
-                    var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
+                    var offset = ctx.options.FieldOffsets == true ? $" // offset: {field.OffsetFromBase} ({field.OffsetNumber})" : string.Empty;
                     sb.Append(subtabs).AppendLine($"{access}{eventMethod.Modifiers}event {evtType} {fieldName};{offset}");
                 } else {
                     var defaultVal = EvaluateFieldDefault(field, "");
                     var baseAccess = field.IsPrivate ? "private" : "public";
-                    var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
+                    var offset = ctx.options.FieldOffsets == true ? $" // offset: {field.OffsetFromBase} ({field.OffsetNumber})" : string.Empty;
                     sb.AppendLine($"{subtabs}{baseAccess} {field.Modifiers}{friendlyTypeName} {fieldName}{defaultVal};{offset}");
                 }
             }
