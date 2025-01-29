@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace REFDumpFormatter;
 
@@ -23,6 +25,16 @@ public partial class GenerateCsharp
         { "System.SByte", "sbyte" },
         { "System.Byte", "byte" },
         { "System.String", "string" },
+    };
+    private static readonly HashSet<string> integerTypes = new() {
+        "System.Int16",
+        "System.UInt16",
+        "System.Int32",
+        "System.UInt32",
+        "System.Int64",
+        "System.UInt64",
+        "System.SByte",
+        "System.Byte",
     };
 
     public GeneratorContext? GenerateOutput(OutputOptions options, IEnumerable<(string name, ObjectDef obj)> entries)
@@ -69,6 +81,7 @@ public partial class GenerateCsharp
                 <TargetFramework>net8.0</TargetFramework>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>disable</Nullable>
+                <RunAnalyzers>false</RunAnalyzers>
             </PropertyGroup>
 
             <ItemGroup>
@@ -77,17 +90,13 @@ public partial class GenerateCsharp
         </Project>
         """);
 
-        File.WriteAllText(Path.Combine(basePath, ".editorconfig"), """
-        [*.{cs,vb}]
-        dotnet_analyzer_diagnostic.category-CodeQuality.severity = none
-
-        dotnet_diagnostic.IDE1006.severity = none # IDE1006: Naming Styles
-        dotnet_diagnostic.IDE0044.severity = none # IDE0044: Add readonly modifier
-        """);
-
         // hopefully comprehensive minimal test cases (DD2):
         // entries = entries
         //     .Where(e => false
+        //         // enum
+        //         || e.name == "app.GUITextureLoaderDefine.LoaderType"
+        //         // multiline string default value
+        //         || e.name == "app.CollisionSystem"
         //         // void delegate
         //         || e.name == "app.HitController.EventDie"
         //         // required for app.HitController.EventDie to detect the namespace properly
@@ -254,11 +263,15 @@ public partial class GenerateCsharp
             .Append(tabs); sb.Append('{').AppendLine();
 
         var subtabs = tabs + '\t';
-        foreach (var (enumName, enumValue) in ctx.GetSortedEnumValues(item)) {
-            sb.AppendLine($"{subtabs}{enumName} = {enumValue},");
+        foreach (var (enumName, enumValue, enumHex) in ctx.GetSortedEnumValues(item, enumType)) {
+            if (ctx.options.FieldOffsets == true) {
+                sb.AppendLine($"{subtabs}{enumName} = {enumValue}, // 0x{enumHex}");
+            } else {
+                sb.AppendLine($"{subtabs}{enumName} = {enumValue},");
+            }
         }
 
-        sb.AppendLine(tabs).Append('}');
+        sb.Append(tabs).AppendLine("}");
     }
 
     private static bool HasVirtualInAnyBaseClass(string? classname, string method, Dictionary<string, REFDumpFormatter.ObjectDef> classes)
@@ -337,6 +350,7 @@ public partial class GenerateCsharp
             foreach (var (fieldName, field) in item.fields.OrderBy(f => (!f.Value.IsStatic, f.Value.OffsetNumber))) {
                 var friendlyTypeName = GetFriendlyTypeName(field.Type, ctx, cls.Name);
                 if (fieldName.EndsWith("k__BackingField")) {
+                    var defaultVal = EvaluateFieldDefault(field, ";");
                     // example property name: <IsFinishWait>k__BackingField;
                     var propName = fieldName[1..fieldName.IndexOf('>')];
                     var getter = item.methods?.FirstOrDefault(k => k.Key.StartsWith($"get_{propName}"));
@@ -358,7 +372,7 @@ public partial class GenerateCsharp
                             ? baseAccess + " override"
                             : baseAccess + " virtual";
                     }
-                    sb.AppendLine($"{subtabs}{baseAccess} {friendlyTypeName} {propName} {{ {gtstr} {ststr} }}{offset}");
+                    sb.AppendLine($"{subtabs}{baseAccess} {friendlyTypeName} {propName} {{ {gtstr} {ststr} }}{defaultVal}{offset}");
                     props.Add(propName);
                 } else if (item.methods?.FirstOrDefault(m => m.Key.StartsWith("add_") && m.Key.AsSpan()[4..^((int)Math.Log10(m.Value.id) + 1)].SequenceEqual(fieldName)).Value is MethodDef eventMethod) {
                     // events included for completeness sake but probably useless for the foreseeable future
@@ -367,9 +381,10 @@ public partial class GenerateCsharp
                     var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
                     sb.Append(subtabs).AppendLine($"{access}{eventMethod.Modifiers}event {evtType} {fieldName};{offset}");
                 } else {
+                    var defaultVal = EvaluateFieldDefault(field, "");
                     var baseAccess = field.IsPrivate ? "private" : "public";
                     var offset = ctx.options.FieldOffsets == true ? " // offset: " + field.OffsetFromBase : string.Empty;
-                    sb.AppendLine($"{subtabs}{baseAccess} {field.Modifiers}{friendlyTypeName} {fieldName};{offset}");
+                    sb.AppendLine($"{subtabs}{baseAccess} {field.Modifiers}{friendlyTypeName} {fieldName}{defaultVal};{offset}");
                 }
             }
         }
@@ -521,5 +536,39 @@ public partial class GenerateCsharp
             }
         } while (backtickPos != -1);
         return typeString;
+    }
+
+    private static string? EvaluateFieldDefault(FieldDef field, string suffix)
+    {
+        if (field.Default == null) return null;
+
+        if (field.Default is JsonElement elem) {
+            if (field.Type == "System.Boolean") {
+                return !elem.GetBoolean() ? null : " = true" + suffix;
+            }
+
+            if (elem.ValueKind == JsonValueKind.Number) {
+                if (field.Type == "System.UInt64") {
+                    return elem.GetUInt64() == 0 ? null : $" = {elem}{suffix}";
+                } else if (integerTypes.Contains(field.Type)) {
+                    return elem.GetInt64() == 0 ? null : $" = {elem}{suffix}";
+                } else if (field.Type == "System.Single") {
+                    return elem.GetSingle() == 0 ? null : $" = {elem}f{suffix}";
+                } else if (field.Type == "System.Double") {
+                    return elem.GetDouble() == 0 ? null : $" = {elem}{suffix}";
+                }
+            }
+
+            if (field.Type == "System.String") {
+                return $" = \"{EscapeString(elem.ToString())}\"{suffix}";
+            }
+        }
+
+        return null;
+    }
+
+    private static string EscapeString(string str)
+    {
+        return str.Replace("\"", "\\\"").Replace("\n", "\\n");
     }
 }

@@ -98,8 +98,12 @@ public partial class GenerateLua
 
         sb.Append("local ").Append(cls.Name).Append(" = {").AppendLine();
 
-        foreach (var (enumName, enumValue) in ctx.GetSortedEnumValues(item)) {
-            sb.AppendLine($"\t{enumName} = {enumValue},");
+        foreach (var (enumName, enumValue, enumHex) in ctx.GetSortedEnumValues(item, enumType)) {
+            if (ctx.options.FieldOffsets == true) {
+                sb.AppendLine($"\t{enumName} = {enumValue}, -- 0x{enumHex}");
+            } else {
+                sb.AppendLine($"\t{enumName} = {enumValue},");
+            }
         }
         sb.Append('}').AppendLine();
     }

@@ -1,5 +1,6 @@
 namespace REFDumpFormatter;
 
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -19,8 +20,6 @@ public partial class GeneratorContext
 
     [GeneratedRegex("\\[([\\w\\d,`<>\\.]+)\\[\\]\\]")]
     public static partial Regex BracketsArrayWrapped();
-
-    private readonly PriorityQueue<string, ulong> enumSorter = new();
 
     public Dictionary<string, REFDumpFormatter.ObjectDef> classNames;
     public Dictionary<string, string>? remappedTypeNames;
@@ -104,23 +103,49 @@ public partial class GeneratorContext
         return enumType;
     }
 
-    public IEnumerable<(string name, ulong value)> GetSortedEnumValues(ObjectDef item)
+    public IEnumerable<(string name, string value, string valueHex)> GetSortedEnumValues(ObjectDef item, string backingType)
     {
-        if (item.fields == null) {
-            yield break;
-        }
+        if (item.fields == null) yield break;
 
-        enumSorter.Clear();
-        foreach (var (fieldName, field) in item.fields) {
-            if (fieldName != "value__" && field.IsStatic && field.Default is JsonElement elem && elem.ValueKind == JsonValueKind.Number) {
-                var val = elem.GetUInt64();
-                enumSorter.Enqueue(fieldName, val);
+        foreach (var (name, field) in item.fields.OrderBy(f => f.Value.Id)) {
+            if (!field.Flags.Contains("SpecialName") && field.IsStatic && field.Default is JsonElement elem && elem.ValueKind == JsonValueKind.Number) {
+                if (backingType == "System.Long" || backingType == "long") {
+                    var val = ((long)elem.GetUInt64());
+                    yield return (name, val.ToString(), val.ToString("X"));
+                } else if (backingType == "System.ULong" || backingType == "ulong") {
+                    yield return (name, elem.GetUInt64().ToString(), elem.GetUInt64().ToString("X"));
+                } else {
+                    var baseVal = elem.GetInt64();
+                    var valstr = backingType switch {
+                        "System.Int32" => (baseVal >= 2147483648 ? (baseVal - 2 * 2147483648L) : baseVal).ToString(),
+                        "int" => (baseVal >= 2147483648 ? (baseVal - 2 * 2147483648L) : baseVal).ToString(),
+                        "System.Int16" => (baseVal >= 32768 ? (baseVal - 2 * 32768) : baseVal).ToString(),
+                        "short" => (baseVal >= 32768 ? (baseVal - 2 * 32768) : baseVal).ToString(),
+                        "System.SByte" => (baseVal >= 128 ? (baseVal - 2 * 128) : baseVal).ToString(),
+                        "sbyte" => (baseVal >= 128 ? (baseVal - 2 * 128) : baseVal).ToString(),
+                        _ => baseVal.ToString(),
+                    };
+                    var hex = backingType switch {
+                        "System.Int32" => int.Parse(valstr).ToString("X"),
+                        "int" => int.Parse(valstr).ToString("X"),
+                        "System.UInt32" => uint.Parse(valstr).ToString("X"),
+                        "uint" => uint.Parse(valstr).ToString("X"),
+
+                        "System.Int16" => short.Parse(valstr).ToString("X"),
+                        "short" => short.Parse(valstr).ToString("X"),
+                        "System.UInt16" => ushort.Parse(valstr).ToString("X"),
+                        "ushort" => ushort.Parse(valstr).ToString("X"),
+
+                        "System.SByte" => sbyte.Parse(valstr).ToString("X"),
+                        "sbyte" => sbyte.Parse(valstr).ToString("X"),
+                        "System.Byte" => byte.Parse(valstr).ToString("X"),
+                        "byte" => byte.Parse(valstr).ToString("X"),
+
+                        _ => baseVal.ToString("X"),
+                    };
+                    yield return (name, valstr, hex);
+                }
             }
-        }
-
-        // foreach (var (enumValue, enumName) in enumSorter)
-        while (enumSorter.TryDequeue(out var enumName, out var enumValue)) {
-            yield return (enumName, enumValue);
         }
     }
 
