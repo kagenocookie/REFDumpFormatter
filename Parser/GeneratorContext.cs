@@ -109,20 +109,20 @@ public partial class GeneratorContext
 
         foreach (var (name, field) in item.fields.OrderBy(f => f.Value.Id)) {
             if (!field.Flags.Contains("SpecialName") && field.IsStatic && field.Default is JsonElement elem && elem.ValueKind == JsonValueKind.Number) {
-                if (backingType == "System.Long" || backingType == "long") {
+                if (backingType == "System.Int64" || backingType == "long") {
                     var val = ((long)elem.GetUInt64());
                     yield return (name, val.ToString(), val.ToString("X"));
-                } else if (backingType == "System.ULong" || backingType == "ulong") {
+                } else if (backingType == "System.UInt64" || backingType == "ulong") {
                     yield return (name, elem.GetUInt64().ToString(), elem.GetUInt64().ToString("X"));
                 } else {
                     var baseVal = elem.GetInt64();
                     var valstr = backingType switch {
-                        "System.Int32" => (baseVal >= 2147483648 ? (baseVal - 2 * 2147483648L) : baseVal).ToString(),
-                        "int" => (baseVal >= 2147483648 ? (baseVal - 2 * 2147483648L) : baseVal).ToString(),
-                        "System.Int16" => (baseVal >= 32768 ? (baseVal - 2 * 32768) : baseVal).ToString(),
-                        "short" => (baseVal >= 32768 ? (baseVal - 2 * 32768) : baseVal).ToString(),
-                        "System.SByte" => (baseVal >= 128 ? (baseVal - 2 * 128) : baseVal).ToString(),
-                        "sbyte" => (baseVal >= 128 ? (baseVal - 2 * 128) : baseVal).ToString(),
+                        "System.Int32" => ((int)baseVal).ToString(),
+                        "int" => ((int)baseVal).ToString(),
+                        "System.Int16" => ((short)baseVal).ToString(),
+                        "short" => ((short)baseVal).ToString(),
+                        "System.SByte" => ((sbyte)baseVal).ToString(),
+                        "sbyte" => ((sbyte)baseVal).ToString(),
                         _ => baseVal.ToString(),
                     };
                     var hex = backingType switch {
