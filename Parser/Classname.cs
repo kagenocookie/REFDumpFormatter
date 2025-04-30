@@ -345,6 +345,19 @@ public class Classname
                 parser = new StringParser(parser.text.Slice(0, parser.text.LastIndexOf("],[") + 1).ToString() + "]");
                 parser.MayFail = true;
             }
+            if (genericSeparator == parser.text.Length - 2) {
+                // RE7 special case - generic type base definitions have no generic arg names or types, make them up
+                var genericCount = int.Parse(parser.text[(genericSeparator + 1)..]);
+                res.Generic = new Classname[genericCount];
+                for (int i = 0; i < genericCount; ++i) {
+                    res.Generic[i] = new Classname(ctx) {
+                        IsArray = false,
+                        Name = "T" + i,
+                    };
+                }
+                parser.pos = parser.text.Length;
+                return res;
+            }
             var genericSep = parser.text.IndexOfAnyOffset('[', '<', '.', genericSeparator);
             if (genericSep == -1) {
                 throw new Exception("Oi how is this not there!!!!");
@@ -352,10 +365,15 @@ public class Classname
 
             if (parser.text[genericSep] == '.') {
                 var reallyGenericSep = parser.text.IndexOfAnyOffset('`', '[', '<', genericSep);
-                parser.pos = reallyGenericSep;
-                if (parser.Cur == '`') {
-                    // nested generic within generic class, eugh
-                    return null;
+                if (reallyGenericSep == -1) {
+                    // RE7 special case
+                    parser.pos = reallyGenericSep = parser.text.Length;
+                } else {
+                    parser.pos = reallyGenericSep;
+                    if (parser.Cur == '`') {
+                        // nested generic within generic class, eugh
+                        return null;
+                    }
                 }
                 // handle these properly (nested types within generic classes)
                 // "System.Collections.Generic.Dictionary`2.Entry
@@ -368,7 +386,17 @@ public class Classname
                 res.Parent = parent;
                 res.Namespace = parent.Namespace;
 
-                if (parser.Cur == '[') {
+                if (parser.pos == parser.text.Length) {
+                    // RE7 special case - make the arg names up
+                    var genericCount = int.Parse(parser.text[(genericSeparator + 1)..genericSep]);
+                    res.Parent.Generic = new Classname[genericCount];
+                    for (int i = 0; i < genericCount; ++i) {
+                        res.Parent.Generic[i] = new Classname(ctx) {
+                            IsArray = false,
+                            Name = "T" + i,
+                        };
+                    }
+                } else if (parser.Cur == '[') {
                     res.Parent.Generic = ParseBracketed(ref parser, ctx);
                 } else {
                     if (ignoreNonDefinitions) {
@@ -410,6 +438,7 @@ public class Classname
             // compiler-generated lambda thingies, just return them as is
             return new Classname(ctx) { Name = name };
         }
+        if (string.IsNullOrEmpty(name)) return new Classname(ctx) { Name = "object?" };
         var parser = new StringParser(name.AsSpan());
         parser.containingClass = containingClass;
         try {

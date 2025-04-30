@@ -63,4 +63,4 @@ To enable the generated type hints in your own mod, the Lua extension by sumneko
     - class name in the dump seems to be limited to 1023 length (partially breaks `app.AIBlackBoardCollection<>` specifically)
 - No support for array of arrays (they do seem to exist but not sure how well REF even supports them either)
 - Compiler-generated lambdas (`.<>c__DisplayClass`, `.<>c**`) don't get emitted
-- Generic classes nested within generic clases are not supported (I think)
+- Generic classes nested within generic clases are not supported
