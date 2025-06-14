@@ -287,6 +287,7 @@ public class Classname
                 i++;
             }
         }
+        var nonPtrName = cls.Name.EndsWith('&') ? cls.Name[0..^1] : cls.Name;
         if (cls.Name.StartsWith("!!")) {
             // method generics
 
@@ -294,21 +295,21 @@ public class Classname
             //     throw new Exception("Generic type parameter is supposed to have a containing class oi");
             // }
             int idx;
-            if (cls.Name.EndsWith("[][]")) {
+            if (nonPtrName.EndsWith("[][]")) {
                 // dmc5 template args end with &, skip that when parsing
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[2..^5] : cls.Name.AsSpan()[2..^4]);
+                idx = int.Parse(nonPtrName.AsSpan()[2..^4]);
                 cls.IsArray = true;
-            } else if (cls.Name.EndsWith("[]")) {
+            } else if (nonPtrName.EndsWith("[]")) {
                 // dmc5 template args end with &, skip that when parsing
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[2..^3] : cls.Name.AsSpan()[2..^2]);
+                idx = int.Parse(nonPtrName.AsSpan()[2..^2]);
                 cls.IsArray = true;
             } else {
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[2..^1] : cls.Name.AsSpan().Slice(2));
+                idx = int.Parse(nonPtrName.AsSpan().Slice(2));
                 cls.IsArray = false;
             }
             // cls = parser.parentClass.Generic![idx];
-            cls.Name = "T" + idx;
-        } else if (cls.Name.StartsWith('!')) {
+            nonPtrName = "T" + idx;
+        } else if (nonPtrName.StartsWith('!')) {
             // class generics
 
             if (parser.containingClass == null) {
@@ -316,14 +317,14 @@ public class Classname
             }
             int idx;
             bool isArray;
-            if (cls.Name.EndsWith("[][]")) {
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[1..^5] : cls.Name.AsSpan()[1..^4]);
+            if (nonPtrName.EndsWith("[][]")) {
+                idx = int.Parse(nonPtrName.AsSpan()[1..^4]);
                 isArray = true;
-            } else if (cls.Name.EndsWith("[]")) {
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[1..^3] : cls.Name.AsSpan()[1..^2]);
+            } else if (nonPtrName.EndsWith("[]")) {
+                idx = int.Parse(nonPtrName.AsSpan()[1..^2]);
                 isArray = true;
             } else {
-                idx = int.Parse(cls.Name.EndsWith('&') ? cls.Name.AsSpan()[1..^1] : cls.Name.AsSpan().Slice(1));
+                idx = int.Parse(nonPtrName.AsSpan().Slice(1));
                 isArray = false;
             }
             var gen = parser.containingClass.InheritedGeneric;
