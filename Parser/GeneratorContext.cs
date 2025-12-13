@@ -115,7 +115,7 @@ public partial class GeneratorContext
                 } else if (backingType == "System.UInt64" || backingType == "ulong") {
                     yield return (name, elem.GetUInt64().ToString(), elem.GetUInt64().ToString("X"));
                 } else {
-                    var baseVal = elem.GetInt64();
+                    var baseVal = elem.GetUInt64();
                     var valstr = backingType switch {
                         "System.Int32" => ((int)baseVal).ToString(),
                         "int" => ((int)baseVal).ToString(),
@@ -123,6 +123,12 @@ public partial class GeneratorContext
                         "short" => ((short)baseVal).ToString(),
                         "System.SByte" => ((sbyte)baseVal).ToString(),
                         "sbyte" => ((sbyte)baseVal).ToString(),
+                        "System.UInt32" => ((uint)baseVal).ToString(),
+                        "uint" => ((uint)baseVal).ToString(),
+                        "System.UInt16" => ((ushort)baseVal).ToString(),
+                        "ushort" => ((ushort)baseVal).ToString(),
+                        "System.Byte" => ((byte)baseVal).ToString(),
+                        "byte" => ((byte)baseVal).ToString(),
                         _ => baseVal.ToString(),
                     };
                     var hex = backingType switch {
