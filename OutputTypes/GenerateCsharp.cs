@@ -239,7 +239,7 @@ public partial class GenerateCsharp
 
     private static bool FilterClassnames(Classname cls, GeneratorContext ctx)
     {
-        if (cls.Namespace == "via" && char.IsAsciiLetterLower(cls.Name[0]) && ctx.classNames.ContainsKey(string.Concat(cls.Namespace, ".", cls.Name.Substring(0, 1).ToUpperInvariant(), cls.Name.AsSpan(1)))) {
+        if (cls.Namespace.StartsWith("via") && char.IsAsciiLetterLower(cls.Name[0]) && ctx.classNames.ContainsKey(string.Concat(cls.Namespace, ".", cls.Name.Substring(0, 1).ToUpperInvariant(), cls.Name.AsSpan(1)))) {
             // non-native class, possibly with ext methods or nested classes or whatever
             // concrete example, there's a via.quaternion and via.Quaternion name conflict
             // windows paths aren't case sensitive so emitting only lowercase ones cause they're the real native type and ignoring the c# side of it
