@@ -14,6 +14,7 @@ static void PrintHelp()
     Additional options:
         --field-offsets   Include the field offsets in the output, useful when reverse engineering the executable (crashes) or native code
         --include-overloads Include all method overloads
+        --include-reflection Include all reflection properties and methods (C# only)
         --ignore-overloads Ignore method overloads
         --namespace-files Write all classes into one file corresponding to its namespace
         --class-files Write all classes into their own file
@@ -37,6 +38,7 @@ string? outputFilepath = null;
 bool ignoreSystemTypes = false;
 bool ignoreArrays = false;
 bool? ignoreOverloads = null;
+bool includeReflection = false;
 bool? fieldOffsets = null;
 bool? joinByNamespace = null;
 
@@ -73,12 +75,16 @@ if (interactive) {
         _ => null,
     };
     fieldOffsets = ShowOption("Include field byte offsets: [y/n] ") == "y";
+    if (action == OutputType.GenerateCsharp) {
+        includeReflection = ShowOption("Include reflection methods/properties: [y/n] ") == "y";
+    }
 }
 
 foreach (var arg in args) {
     if (arg.StartsWith("--")) {
         switch (arg) {
             case "--include-overloads": ignoreOverloads = false; break;
+            case "--include-reflection": includeReflection = true; break;
             case "--ignore-overloads": ignoreOverloads = true; break;
             case "--ignore-arrays": ignoreArrays = true; break;
             case "--generate-csharp": action = OutputType.GenerateCsharp; break;
@@ -155,6 +161,7 @@ var options = new OutputOptions() {
     FieldOffsets = fieldOffsets,
     IgnoreOverloads = ignoreOverloads.Value,
     JoinByNamespace = joinByNamespace.Value,
+    IncludeReflection = includeReflection,
     ClassesPerFile = 250,
 };
 GeneratorContext? ctx = null;

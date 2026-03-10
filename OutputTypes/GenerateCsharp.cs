@@ -25,7 +25,22 @@ public partial class GenerateCsharp
         { "System.SByte", "sbyte" },
         { "System.Byte", "byte" },
         { "System.String", "string" },
+        { "u64", "ulong" },
+        { "u32", "uint" },
+        { "u16", "ushort" },
+        { "u8", "byte" },
+        { "s64", "long" },
+        { "s32", "int" },
+        { "s16", "short" },
+        { "s8", "sbyte" },
+        { "f32", "float" },
+        { "f64", "double" },
+        { "via.string", "string" },
+        { "c16", "string" },
+        { "c8", "string /* (ascii) */" },
+        { "undefined", "object?" },
     };
+
     private static readonly HashSet<string> integerTypes = new() {
         "System.Int16",
         "System.UInt16",
@@ -90,6 +105,13 @@ public partial class GenerateCsharp
         </Project>
         """);
 
+        File.WriteAllText(Path.Combine(basePath, ".editorconfig"), """
+        [*.cs]
+        dotnet_diagnostic.CS8632.severity = none
+        """);
+
+        // entries = entries.Where(e => e.name.Equals("via.motion.chain", StringComparison.OrdinalIgnoreCase));
+        // entries = entries.Where(e => e.name.Equals("via.gui.MeshInstance", StringComparison.OrdinalIgnoreCase));
         // hopefully comprehensive minimal test cases (DD2):
         // entries = entries
         //     .Where(e => false
@@ -488,6 +510,35 @@ public partial class GenerateCsharp
                         var body = method.IsAbstract ? ";" : " => throw new NotImplementedException();";
                         sb.AppendLine($"{subtabs}{baseAccess}{returnType} {cleanName}({paramsStr}){body}{offsets}");
                     }
+                }
+            }
+        }
+
+        if (ctx.options.IncludeReflection) {
+            if (item.ReflectionProperties != null) {
+                sb.AppendLine().Append(subtabs).AppendLine("// reflection properties");
+                foreach (var (name, reflProp) in item.ReflectionProperties) {
+                    if (props.Contains(name)) continue;
+
+                    sb.Append(subtabs).Append("internal ").Append(GetFriendlyTypeName(reflProp.Type, ctx, cls.Name)).Append(' ').Append(name).AppendLine(" { get; set; }");
+                    props.Add(name);
+                }
+            }
+
+            if (item.ReflectionMethods != null) {
+                sb.AppendLine().Append(subtabs).AppendLine("// reflection methods");
+                foreach (var (name, method) in item.ReflectionMethods) {
+                    if ((name.StartsWith("set_") || name.StartsWith("get_")) && props.Contains(name[4..])) continue;
+
+                    IEnumerable<(Classname? type, string name, string mod)> paramsList = method.Params == null || method.Params.Length == 0
+                        ? []
+                        : method.Params
+                            .Select((p, i) => p == null ? (null, $"arg{i}", "") : (Classname.Parse(p.Type, ctx, cls.Name), p.Name, p.ByRef ? "out " : ""));
+                    var paramsStr = string.Join(", ", paramsList
+                        .Select((c, i) => c.mod + (c.type?.ToStringFullName(true, true) ?? "object?") + " " + PreprocessNameForDisplay(c.name, i)));
+
+                    sb.Append(subtabs).Append("internal object? ").Append(name).Append('(').Append(paramsStr).AppendLine(") => throw new NotImplementedException();");
+                    props.Add(name);
                 }
             }
         }

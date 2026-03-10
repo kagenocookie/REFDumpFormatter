@@ -1,5 +1,7 @@
 namespace REFDumpFormatter;
 
+using System.Text.Json.Serialization;
+
 public class ObjectDef
 {
     public string? address { get; set; }
@@ -12,6 +14,13 @@ public class ObjectDef
     public bool is_generic_type_definition { get; set; }
     public Dictionary<string, MethodDef>? methods { get; set; }
     public Dictionary<string, FieldDef>? fields { get; set; }
+
+    [JsonPropertyName("reflection_properties")]
+    public Dictionary<string, ReflectionPropertyDef>? ReflectionProperties { get; set; }
+
+    [JsonPropertyName("reflection_methods")]
+    public Dictionary<string, ReflectionMethodDef>? ReflectionMethods { get; set; }
+
     public bool IsAbstract => flags?.Contains("Abstract") == true;
     public bool IsNative => flags?.Contains("NativeType") == true;
 }

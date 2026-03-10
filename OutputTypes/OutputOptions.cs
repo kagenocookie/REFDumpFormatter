@@ -9,4 +9,5 @@ public class OutputOptions
     public bool IgnoreOverloads { get; init; }
     public bool JoinByNamespace { get; init; }
     public int ClassesPerFile { get; init; }
+    public bool IncludeReflection { get; init; }
 }
