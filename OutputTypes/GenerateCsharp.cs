@@ -517,10 +517,10 @@ public partial class GenerateCsharp
         if (ctx.options.IncludeReflection) {
             if (item.ReflectionProperties != null) {
                 sb.AppendLine().Append(subtabs).AppendLine("// reflection properties");
-                foreach (var (name, reflProp) in item.ReflectionProperties) {
-                    if (props.Contains(name)) continue;
+                foreach (var (name, reflProp) in item.ReflectionProperties.OrderBy(x => x.Value.Order)) {
+                    var printName = props.Contains(name) ? $"{name}__ReflectionProperty" : name;
 
-                    sb.Append(subtabs).Append("internal ").Append(GetFriendlyTypeName(reflProp.Type, ctx, cls.Name)).Append(' ').Append(name).AppendLine(" { get; set; }");
+                    sb.Append(subtabs).Append("internal ").Append(GetFriendlyTypeName(reflProp.Type, ctx, cls.Name)).Append(' ').Append(printName).AppendLine(" { get; set; }");
                     props.Add(name);
                 }
             }
